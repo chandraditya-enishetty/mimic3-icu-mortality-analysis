@@ -1,20 +1,10 @@
 """
 MIMIC-III ICU Mortality & LOS — Model Training & Evaluation
 ============================================================
-Reads the cohort CSV produced by mimic3_icu_cohort.py and:
-  1. Trains a logistic regression baseline
-  2. Trains a random forest classifier
-  3. Compares ROC-AUC and precision-recall curves
-  4. Plots SHAP feature importances (random forest)
-  5. Saves all outputs (plots + metrics CSV) for your portfolio
-
-Run:
-    python mimic3_model.py
-
 Outputs:
     roc_curves.png
     feature_importance.png
-    shap_summary.png          (if shap installed)
+    shap_summary.png          
     model_metrics.csv
 """
 
@@ -41,7 +31,7 @@ from sklearn.metrics           import (
 from sklearn.calibration       import calibration_curve
 
 try:
-    import shap
+    import fix_shap
     SHAP_AVAILABLE = True
 except ImportError:
     SHAP_AVAILABLE = False
@@ -289,7 +279,7 @@ print(imp_df[["feature_label", "importance"]].head(10).to_string(index=False))
 
 if SHAP_AVAILABLE:
     print("\nComputing SHAP values (random forest — this may take a minute)...")
-    explainer  = shap.TreeExplainer(rf_clf)
+    explainer  = fix_shap.TreeExplainer(rf_clf)
     # Use a sample of 500 test patients to keep it fast
     X_test_scaled = rf_pipeline.named_steps["scaler"].transform(X_test)
     X_sample = pd.DataFrame(X_test_scaled, columns=feature_names).sample(
@@ -301,7 +291,7 @@ if SHAP_AVAILABLE:
     shap_vals_class1 = shap_values[1] if isinstance(shap_values, list) else shap_values
 
     fig, ax = plt.subplots(figsize=(14, 10))
-    shap.summary_plot(
+    fix_shap.summary_plot(
         shap_vals_class1,
         X_sample,
         plot_type="dot",
@@ -352,22 +342,4 @@ Best model   : {best_row['model']}
   Precision  : {best_row['precision_died']:.3f}  (patients predicted to die)
   Recall     : {best_row['recall_died']:.3f}  (actual deaths caught)
 
-Resume bullet (fill in your numbers):
-─────────────────────────────────────────────────────────
-Analysed {len(df):,} ICU admissions from MIMIC-III (PhysioNet credentialed)
-using SQL and Python; engineered {X.shape[1]}+ clinical features from
-first-24h vitals and lab events; trained a Random Forest classifier
-achieving ROC-AUC {best_row['test_roc_auc']:.3f} in predicting in-hospital mortality,
-surfacing top risk factors (age, lactate, creatinine, SpO2) with
-SHAP explainability — with recommendations for early-warning triage.
-─────────────────────────────────────────────────────────
-
-Output files:
-  roc_curves.png         → for your Jupyter notebook & README
-  feature_importance.png → for your dashboard / report
-  shap_summary.png       → the most impressive visual for interviews
-  confusion_matrix.png   → for your report
-  model_metrics.csv      → raw numbers table
-
-Next: build mimic3_dashboard.py (Streamlit) or connect to Tableau.
 """)

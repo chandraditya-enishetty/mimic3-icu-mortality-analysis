@@ -58,8 +58,6 @@ Despite being a known clinical fact, the magnitude of this difference in this co
 
 ## Dashboard
 
-> **Live dashboard:** [Power BI — View here](#) *(add your published link)*
-
 The dashboard has three pages:
 
 | Page | Focus |
@@ -221,10 +219,9 @@ Primary metric: **ROC-AUC** (more meaningful than accuracy for imbalanced clinic
 
 | Model | CV ROC-AUC | Test ROC-AUC | Precision (died) | Recall (died) |
 |---|---|---|---|---|
-| Logistic Regression | 0.XX ± 0.XX | 0.XX | 0.XX | 0.XX |
-| Random Forest | 0.XX ± 0.XX | **0.XX** | 0.XX | 0.XX |
+| Logistic Regression | 0.809 ± 0.006 | 0.812 | 0.27 | 0.68 |
+| Random Forest | 0.839 ± 0.007 | **0.836** | 0.33 | 0.66 |
 
-*Fill in with your actual values after running `mimic3_model.py`.*
 
 ---
 
@@ -276,8 +273,8 @@ shap>=0.43
 
 ## Contact
 
-**Your Name**
-[LinkedIn](#) · [Portfolio](#) · your.email@example.com
+**Chandraditya Enishetty**
+aditya.enishetty@gmail.com
 
 ---
 

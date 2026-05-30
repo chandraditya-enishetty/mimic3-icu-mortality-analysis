@@ -9,8 +9,6 @@ Prerequisites:
     pip install google-cloud-bigquery google-auth pandas numpy
     pip install db-dtypes pyarrow scikit-learn matplotlib seaborn
 
-PhysioNet BigQuery project: physionet-data
-Your GCP project ID: <your-gcp-project-id>  (replace below)
 """
 
 # ── 1. IMPORTS ────────────────────────────────────────────────────────────────
@@ -23,13 +21,6 @@ from google.cloud import bigquery
 from google.oauth2 import service_account
 
 # ── 2. BIGQUERY CONNECTION ─────────────────────────────────────────────────────
-#
-# Option A (recommended for local dev): Application Default Credentials
-#   Run once in terminal:  gcloud auth application-default login
-#
-# Option B: Service account key file
-#   credentials = service_account.Credentials.from_service_account_file("key.json")
-#   client = bigquery.Client(project=YOUR_PROJECT, credentials=credentials)
 
 MY_PROJECT = "icu-mortality-los-prediction"   # <-- replace with your GCP project ID
 MIMIC_DATASET = "physionet-data.mimiciii_clinical"
@@ -113,18 +104,6 @@ print(f"Age range            : {cohort_df['age'].min()}–{cohort_df['age'].max(
 
 
 # ── 4. PULL FIRST-24H VITALS FROM CHARTEVENTS ─────────────────────────────────
-#
-# CHARTEVENTS has ~330M rows — ALWAYS filter by itemid first.
-# We use MetaVision (CareVue IDs also included as fallback).
-#
-# Key itemids:
-#   Heart rate        : 220045
-#   Systolic BP (art) : 220179
-#   Diastolic BP      : 220180
-#   SpO2              : 220277
-#   Temperature (C)   : 223762
-#   Respiratory rate  : 220210
-#   GCS total         : 223900 (verbal), 223901 (motor), 220739 (eyes) — sum these
 
 VITAL_ITEMIDS = {
     220045: "heart_rate",
@@ -213,15 +192,6 @@ print(f"Vitals feature columns: {vitals_wide.shape[1] - 1}")
 
 
 # ── 6. PULL FIRST-24H LAB VALUES ──────────────────────────────────────────────
-#
-# Key itemids (LABEVENTS uses a different itemid namespace):
-#   Creatinine   : 50912
-#   Lactate      : 50813
-#   WBC          : 51301
-#   Haemoglobin  : 51222
-#   Glucose      : 50931
-#   Bicarbonate  : 50882
-#   Bilirubin    : 50885
 
 LAB_ITEMIDS = {
     50912: "creatinine",
@@ -311,9 +281,8 @@ print("Feature engineering  : done")
 
 
 # ── 9. HANDLE MISSING VALUES ──────────────────────────────────────────────────
-#
-# Clinical data is always missing — document your strategy.
-# Strategy here: median imputation (safe default for skewed lab distributions)
+
+# median imputation
 
 feature_cols = (
     [c for c in df.columns if c.startswith(("min_", "max_", "mean_"))]
@@ -330,7 +299,7 @@ for col in feature_cols:
     median_val = df[col].median()
     df[col] = df[col].fillna(median_val)
 
-# Add missingness indicator flags (keeps information about which was imputed)
+# Add missingness indicator flags 
 for col in feature_cols:
     df[f"{col}_missing"] = df[col].isnull().astype(int)
 

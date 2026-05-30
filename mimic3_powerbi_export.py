@@ -4,15 +4,6 @@ MIMIC-III → Power BI Export Script
 Reads mimic3_icu_cohort.csv (from mimic3_icu_cohort.py) and
 exports clean, aggregated tables that Power BI can load directly.
 
-IMPORTANT — PhysioNet data use agreement:
-    Never publish patient-level rows publicly.
-    This script exports AGGREGATED summaries only.
-    The patient-level file is for local Power BI Desktop use only —
-    do NOT upload it to Power BI Service or share it.
-
-Run:
-    pip install pandas numpy openpyxl
-    python mimic3_powerbi_export.py
 
 Outputs (load all into one Power BI .pbix file):
     powerbi_patient_level.csv        ← local use only, never publish
@@ -40,7 +31,7 @@ OUT_EXCEL   = "powerbi_all_tables.xlsx"
 df = pd.read_csv(COHORT_CSV, parse_dates=["admittime"])
 print(f"Loaded cohort: {len(df):,} rows")
 
-# ── DERIVED COLUMNS (needed for Power BI visuals) ─────────────────────────────
+# ── DERIVED COLUMNS ─────────────────────────────
 
 df["admit_hour"]    = df["admittime"].dt.hour
 df["admit_dow"]     = df["admittime"].dt.day_name()
@@ -67,7 +58,7 @@ df["los_band"] = pd.cut(
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# TABLE 1 — Patient-level (local Power BI Desktop only, never publish)
+# TABLE 1 — Patient-level
 # ══════════════════════════════════════════════════════════════════════════════
 
 patient_cols = [
@@ -151,7 +142,7 @@ print("Exported: powerbi_los_by_careunit.csv")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# TABLE 5 — Weekend effect (key insight for your report)
+# TABLE 5 — Weekend effect 
 # ══════════════════════════════════════════════════════════════════════════════
 
 weekend_effect = (
@@ -205,9 +196,6 @@ print("Exported: powerbi_shift_analysis.csv")
 # ══════════════════════════════════════════════════════════════════════════════
 # TABLE 7 — Feature importance (from model — hardcoded top 15 as fallback)
 # ══════════════════════════════════════════════════════════════════════════════
-
-# If model_metrics.csv exists, use it; otherwise use representative placeholders
-# Replace these with your actual values after running mimic3_model.py
 
 feature_importance_data = {
     "feature"    : [
@@ -282,112 +270,6 @@ with pd.ExcelWriter(OUT_EXCEL, engine="openpyxl") as writer:
         table.to_excel(writer, sheet_name=sheet_name, index=False)
 
 print(f"\nAll tables exported to: {OUT_EXCEL}")
-print("\n" + "=" * 60)
-print("POWER BI LOAD ORDER")
-print("=" * 60)
-print("""
-1. Open Power BI Desktop
-2. Home → Get Data → Excel Workbook → select powerbi_all_tables.xlsx
-3. Check all sheets in the Navigator → Load
-4. Build visuals as described in the dashboard guide below
-""")
-
-print("=" * 60)
-print("DASHBOARD BUILD GUIDE — 3 PAGES")
-print("=" * 60)
-print("""
-PAGE 1: EXECUTIVE OVERVIEW
-──────────────────────────
-  Visual 1 — Card row (KPI Summary table)
-      • Total patients    • Mortality rate %
-      • Mean ICU LOS      • % prolonged stays
-      • Model AUC score
-
-  Visual 2 — Clustered bar chart
-      Table : Mortality by Age
-      X-axis: age_band
-      Y-axis: mortality_rate_pct
-      Color : total_patients (size context)
-
-  Visual 3 — Horizontal bar chart
-      Table : Mortality by Adm Type
-      Y-axis: admission_type
-      X-axis: mortality_rate_pct
-      Tooltip: mean_los
-
-  Visual 4 — Donut chart
-      Table : LOS by Care Unit
-      Values: total_patients
-      Legend: first_careunit
-
-  Insight text box (add a Text Box visual):
-      "Emergency admissions show [X]% higher mortality
-       than elective. Cardiac and MICU units drive 60%
-       of prolonged stays over 7 days."
 
 
-PAGE 2: RISK FACTOR DEEP DIVE
-──────────────────────────────
-  Visual 1 — Horizontal bar chart
-      Table : Feature Importance
-      Y-axis: feature_label  (sort by importance desc)
-      X-axis: importance_pct
-      Color : category  (Demographics / Labs / Vitals / Admission)
-      Legend: category
 
-  Visual 2 — Scatter chart
-      Table : Patient Level
-      X-axis: mean_lactate
-      Y-axis: icu_los_days
-      Size  : age
-      Color : hospital_expire_flag  (0=blue, 1=red)
-      Filter: cap icu_los_days at 30 using a visual-level filter
-
-  Visual 3 — Matrix (heatmap-style)
-      Table : Patient Level
-      Rows  : age_band
-      Cols  : first_careunit
-      Values: Average of hospital_expire_flag → format as %
-
-  Slicer: admission_type  (dropdown)
-  Slicer: age_band        (dropdown)
-
-
-PAGE 3: TEMPORAL PATTERNS (WEEKEND EFFECT)
-───────────────────────────────────────────
-  Visual 1 — Line + Clustered Column combo chart
-      Table : Weekend Effect
-      X-axis: admit_dow
-      Column: total_patients   (primary y-axis)
-      Line  : mortality_rate_pct (secondary y-axis)
-      Legend: day_type
-
-  Visual 2 — Clustered bar chart
-      Table : Shift Analysis
-      X-axis: shift
-      Y-axis: mortality_rate_pct
-      Color : mean_los
-
-  Visual 3 — Card
-      "Weekend admissions have [X]% higher mean LOS
-       than weekday admissions — consistent with reduced
-       specialist cover. Recommend enhanced weekend
-       handoff protocols."
-
-  Visual 4 — Funnel chart
-      Table : LOS by Care Unit
-      Category: first_careunit
-      Values  : pct_prolonged
-
-FORMATTING TIPS
-───────────────
-  • Set report theme: View → Themes → choose "Accessible default"
-    or import a custom JSON theme for teal/purple palette
-  • All chart titles: sentence case, no ALL CAPS
-  • Add a text box on each page: data source attribution
-    "Data: MIMIC-III v1.4, PhysioNet (de-identified)"
-  • Add page navigation buttons: Insert → Buttons → Navigator
-  • Before publishing to Power BI Service:
-    DELETE or exclude the Patient Level sheet —
-    publish aggregated tables only (PhysioNet DUA compliance)
-""")
